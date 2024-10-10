@@ -1,5 +1,7 @@
+from django.conf import settings
+from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import GameExpUser
+from .models import GameExpUser, Profile, Token, EmailNotification
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -19,15 +21,22 @@ class GameExpUserSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     class Meta:
         model = GameExpUser
-        fields = '__all__'
+        exclude = ['token']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         user_serializer = UserSerializer(data=user_data)
         if user_serializer.is_valid():
             user = user_serializer.save()
-            game_exp_user = GameExpUser.objects.create(user=user, **validated_data)
             refresh = RefreshToken.for_user(user)
+
+            token = Token(
+                refresh_token=str(refresh),
+                expired_at = timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
+            )
+            token.save()
+
+            game_exp_user = GameExpUser.objects.create(user=user, token=token, **validated_data)
             return {
                 'user': GameExpUserSerializer(game_exp_user).data,
                 'refresh': str(refresh),
@@ -36,4 +45,14 @@ class GameExpUserSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError(user_serializer.errors)
 
-        
+
+class GameExpUserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        exclude = ['user']
+
+
+class EmailNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailNotification
+        exclude = ['user']

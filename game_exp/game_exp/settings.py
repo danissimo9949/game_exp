@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -37,6 +38,14 @@ INTERNAL_IPS = [
     # ...
 ]
 
+# Authentication OAuth 2.0 Settings
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'social_core.backends.github.GithubOAuth2',
+)
+
+
 
 # Application definition
 
@@ -50,6 +59,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'debug_toolbar',
     'accounts.apps.AuthConfig',
+    'social_django',
 ]
 
 MIDDLEWARE = [
@@ -144,4 +154,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),    
+    'ROTATE_REFRESH_TOKENS': False,                
+    'BLACKLIST_AFTER_ROTATION': True,
 }

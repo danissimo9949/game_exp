@@ -3,14 +3,22 @@ from django.db import models
 from django.db.models import F
 from django.contrib.auth.models import User
 
+class Token(models.Model):
+    refresh_token = models.CharField(max_length=500, blank=True, null=True)
+    expired_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Refresh token: {self.refresh_token}. Expired at: {self.expired_at}"
+    
 class GameExpUser(models.Model):
     user = models.OneToOneField(User, models.CASCADE)
+    token = models.OneToOneField(Token, on_delete=models.CASCADE, blank=True, null=True)
     is_player = models.BooleanField()
     is_developer = models.BooleanField()
     is_apply_news = models.BooleanField()
     is_accepting_terms = models.BooleanField()
     is_two_auth_enabled = models.BooleanField(default=False)
-
+    
     def __str__(self):
         return f'{self.user.username} | {self.user.email}'
     
@@ -43,9 +51,12 @@ class Profile(models.Model):
     profile_content = models.TextField(blank=True, null=True)
     additional_email = models.EmailField(blank=True, null=True)
     
+    def set_profile_name(self):
+        if self.user and not self.profile_name:
+            self.profile_name = self.user.user.username
 
     def set_display_name(self):
-        if (self.user):
+        if self.user and not self.display_name:
             self.display_name = self.user.user.username
 
     def generate_profile_link(self):
@@ -55,12 +66,9 @@ class Profile(models.Model):
     def __str__(self):
         return f'Profile {self.profile_name} owned by user {self.user.user.username}'
     
+   
     def save(self, *args, **kwargs):
-        if self.pk:
-            old_instanse = Profile.objects.get(self.pk)
-            if old_instanse.language != self.language:
-                self.language.choose_rate = F('choose_rate') + 1
-                self.language.save()
+        self.set_profile_name()
         self.generate_profile_link()
         self.set_display_name()
         return super().save()
@@ -70,3 +78,25 @@ class Profile(models.Model):
         verbose_name_plural = 'User profiles'
 
 
+class EmailNotification(models.Model):
+    user = models.OneToOneField(GameExpUser, on_delete=models.CASCADE)
+    is_never_send = models.BooleanField(default=False)
+
+    buy_notification = models.BooleanField(default=True)
+    follow_notification = models.BooleanField(default=True)
+    reply_notification = models.BooleanField(default=True)
+    sales_notification = models.BooleanField(default=True)
+
+    new_features_announced = models.BooleanField(default=True)
+    new_game_jams = models.BooleanField(default=True)
+    new_devblogs_following = models.BooleanField(default=True)
+    new_uploads_add = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Email notifications for {self.user.user.username} account"
+    
+    class Meta:
+        verbose_name = "Email notification"
+        verbose_name_plural = "Email notifications"
+
+    
