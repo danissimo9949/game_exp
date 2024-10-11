@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'debug_toolbar',
     'accounts.apps.AuthConfig',
+    'dashboard.apps.DashboardConfig',
     'social_django',
 ]
 
